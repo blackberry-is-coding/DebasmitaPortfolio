@@ -11,17 +11,26 @@ interface Petal {
   rotationSpeed: number
   speed: number
   opacity: number
-  color: string
+  zIndex: number
+  scale: number
+  imageIndex: number
 }
 
 export default function SakuraAnimation() {
   const [petals, setPetals] = useState<Petal[]>([])
   const petalIdRef = useRef(0) // Unique ID generator
+  const petalImages = [
+    "/images/cherry1.svg",
+    "/images/cherry2.svg",
+    "/images/cherry3.svg",
+    "/images/cherry4.svg",
+    "/images/cherry5.svg",
+  ]
 
   useEffect(() => {
-    // Create initial petals
+    // Create initial petals - fewer flowers for better performance and visibility
     const initialPetals: Petal[] = []
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 25; i++) {
       initialPetals.push(createPetal())
     }
     setPetals(initialPetals)
@@ -29,13 +38,21 @@ export default function SakuraAnimation() {
     // Animation loop
     let animationFrame = requestAnimationFrame(animatePetals)
 
-    // Periodically add new petals
+    // Periodically add new petals - slower for flowers as they're more visible
     const interval = setInterval(() => {
       setPetals((currentPetals) => {
-        const newPetal = createPetal()
-        return [...currentPetals, newPetal]
+        // Add 1-2 flowers at a time
+        const newPetals = []
+        const count = Math.floor(Math.random() * 5) + 1
+        for (let i = 0; i < count; i++) {
+          newPetals.push(createPetal())
+        }
+        
+        // Limit total flowers to prevent performance issues
+        const maxPetals = 70 // Fewer flowers since they're more detailed
+        return [...currentPetals, ...newPetals].slice(-maxPetals)
       })
-    }, 1000)
+    }, 1200) // Slower generation for flowers
 
     return () => {
       cancelAnimationFrame(animationFrame)
@@ -44,18 +61,20 @@ export default function SakuraAnimation() {
   }, [])
 
   const createPetal = (): Petal => {
-    const colors = ["#ffb7c5", "#ffc0cb", "#f8bbd0", "#e1bee7", "#d1c4e9"]
     const id = petalIdRef.current++
+    const scale = 0.5 + Math.random() * 0.5 // Scale factor for 3D effect - smaller for flowers
     return {
       id,
       x: Math.random() * window.innerWidth,
-      y: -20 - Math.random() * 100,
-      size: 10 + Math.random() * 15,
+      y: -30 - Math.random() * 100,
+      size: 25 + Math.random() * 20, // Larger size for complete flowers
       rotation: Math.random() * 360,
-      rotationSpeed: 0.2 + Math.random() * 1,
-      speed: 0.5 + Math.random() * 2,
-      opacity: 0.3 + Math.random() * 0.4,
-      color: colors[Math.floor(Math.random() * colors.length)],
+      rotationSpeed: 0.2 + Math.random() * 0.8, // Slightly slower rotation for flowers
+      speed: 0.4 + Math.random() * 1.5, // Slightly slower falling speed
+      opacity: 0.6 + Math.random() * 0.4, // More visible flowers
+      zIndex: Math.floor(Math.random() * 10), // Random z-index for 3D layering effect
+      scale, // Scale factor for 3D effect
+      imageIndex: Math.floor(Math.random() * petalImages.length),
     }
   }
 
@@ -63,10 +82,12 @@ export default function SakuraAnimation() {
     setPetals((currentPetals) => {
       return currentPetals
         .map((petal) => {
-          const x = petal.x + Math.sin(petal.y / 50) * 2
+          // Gentle floating motion for flowers - more subtle swaying
+          const x = petal.x + Math.sin(petal.y / 60) * 1.8
           const y = petal.y + petal.speed
           const rotation = petal.rotation + petal.rotationSpeed
 
+          // Remove petals that have fallen below the screen
           if (y > window.innerHeight + 50) {
             return null
           }
@@ -96,13 +117,21 @@ export default function SakuraAnimation() {
             width: `${petal.size}px`,
             height: `${petal.size}px`,
             opacity: petal.opacity,
-            transform: `rotate(${petal.rotation}deg)`,
-            transition: "transform 0.1s linear",
+            transform: `rotate(${petal.rotation}deg) scale(${petal.scale})`,
+            transition: "transform 0.1s linear, opacity 0.5s ease",
+            filter: `drop-shadow(0 0 2px rgba(255, 255, 255, 0.3)) blur(${(1 - petal.scale) * 0.5}px)`,
+            zIndex: petal.zIndex,
           }}
         >
-          <svg viewBox="0 0 30 30" fill={petal.color} xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-            <path d="M15 0C15 0 15 15 0 15C0 15 15 15 15 30C15 30 15 15 30 15C30 15 15 15 15 0Z" />
-          </svg>
+          <img 
+            src={petalImages[petal.imageIndex]} 
+            alt="Cherry blossom" 
+            className="w-full h-full object-contain"
+            style={{
+              transform: `perspective(800px) rotateX(${Math.sin(petal.rotation * 0.01) * 10}deg) rotateY(${Math.cos(petal.rotation * 0.01) * 10}deg)`,
+              filter: `drop-shadow(0 0 3px rgba(255, 192, 203, 0.3))`,
+            }}
+          />
         </div>
       ))}
     </div>
