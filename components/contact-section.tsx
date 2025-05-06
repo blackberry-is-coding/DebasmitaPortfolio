@@ -92,7 +92,7 @@ export default function ContactSection() {
                       href="#contact"
                       className="text-gray-300 hover:text-purple-400 transition-colors"
                     >
-                      9668202775
+                      Hello
                     </a>
                   </div>
                 </div>
