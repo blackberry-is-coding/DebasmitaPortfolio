@@ -46,8 +46,8 @@ export default function AboutSection() {
                 content strategy, and social media, focused on increasing web traffic and improving keyword rankings, with a background in Botany.
                 </p>  
               <p className="text-gray-300">
-                My approach combines data-driven insights with creative problem-solving to boost brand visibility and
-                engagement. I'm passionate about optimizing digital presence and delivering measurable results.
+              "Skilled in front-end development with a focus on UI/UX design, using HTML, CSS, JavaScript, React, and Figma to create responsive,
+               user-friendly websites, and leveraging generative AI tools for content and design enhancement."
               </p>
             </div>
 
