@@ -62,16 +62,16 @@ export default function SakuraAnimation() {
 
   const createPetal = (): Petal => {
     const id = petalIdRef.current++
-    const scale = 0.5 + Math.random() * 0.5 // Scale factor for 3D effect - smaller for flowers
+    const scale = 0.6 + Math.random() * 0.6 // Increased scale factor for bigger flowers
     return {
       id,
       x: Math.random() * window.innerWidth,
       y: -30 - Math.random() * 100,
-      size: 25 + Math.random() * 20, // Larger size for complete flowers
+      size: 35 + Math.random() * 25, // Increased size for bigger flowers
       rotation: Math.random() * 360,
-      rotationSpeed: 0.2 + Math.random() * 0.8, // Slightly slower rotation for flowers
-      speed: 0.4 + Math.random() * 1.5, // Slightly slower falling speed
-      opacity: 0.6 + Math.random() * 0.4, // More visible flowers
+      rotationSpeed: 0.5 + Math.random() * 1.5, // Faster rotation for more spinning
+      speed: 0.4 + Math.random() * 1.5, // Maintained falling speed
+      opacity: 0.6 + Math.random() * 0.4, // Maintained opacity
       zIndex: Math.floor(Math.random() * 10), // Random z-index for 3D layering effect
       scale, // Scale factor for 3D effect
       imageIndex: Math.floor(Math.random() * petalImages.length),
@@ -82,9 +82,10 @@ export default function SakuraAnimation() {
     setPetals((currentPetals) => {
       return currentPetals
         .map((petal) => {
-          // Gentle floating motion for flowers - more subtle swaying
-          const x = petal.x + Math.sin(petal.y / 60) * 1.8
+          // Enhanced floating motion with more pronounced swaying
+          const x = petal.x + Math.sin(petal.y / 60) * 2.2
           const y = petal.y + petal.speed
+          // Faster rotation for more visible spinning
           const rotation = petal.rotation + petal.rotationSpeed
 
           // Remove petals that have fallen below the screen
@@ -128,8 +129,9 @@ export default function SakuraAnimation() {
             alt="Cherry blossom" 
             className="w-full h-full object-contain"
             style={{
-              transform: `perspective(800px) rotateX(${Math.sin(petal.rotation * 0.01) * 10}deg) rotateY(${Math.cos(petal.rotation * 0.01) * 10}deg)`,
-              filter: `drop-shadow(0 0 3px rgba(255, 192, 203, 0.3))`,
+              transform: `perspective(800px) rotateX(${Math.sin(petal.rotation * 0.01) * 15}deg) rotateY(${Math.cos(petal.rotation * 0.01) * 15}deg) rotateZ(${petal.rotation * 0.5}deg)`,
+              filter: `drop-shadow(0 0 4px rgba(255, 192, 203, 0.4))`,
+              transition: "transform 0.05s linear", // Smoother spinning animation
             }}
           />
         </div>
