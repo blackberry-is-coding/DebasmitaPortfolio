@@ -68,7 +68,7 @@ export default function AboutSection() {
               <div className="flex items-center">
                 <Phone className="h-5 w-5 text-purple-400 mr-3" />
                 <a href="#contact" className="text-gray-300 hover:text-purple-400 transition-colors">
-                  Contact me here
+                  Contact Me
                 </a>
               </div>
               <div className="flex items-center">
