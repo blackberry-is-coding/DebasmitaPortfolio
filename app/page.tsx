@@ -4,6 +4,7 @@ import EducationSection from "@/components/education-section"
 import SkillsSection from "@/components/skills-section"
 import ExperienceSection from "@/components/experience-section"
 import ProjectsSection from "@/components/projects-section"
+import ContactSection from "@/components/contact-section"
 import Footer from "@/components/footer"
 import SakuraAnimation from "@/components/sakura-animation"
 
@@ -17,7 +18,7 @@ export default function Home() {
             dsmita<span className="text-purple-400">.pro</span>
           </div>
           <div className="hidden md:flex space-x-6">
-            {["Home", "About", "Education", "Skills", "Experience", "Projects"].map((item) => (
+            {["Home", "About", "Education", "Skills", "Experience", "Projects", "Contact"].map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase()}`}
@@ -48,6 +49,7 @@ export default function Home() {
         <SkillsSection />
         <ExperienceSection />
         <ProjectsSection />
+        <ContactSection />
       </main>
 
       <Footer />

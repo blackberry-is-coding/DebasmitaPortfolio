@@ -42,10 +42,9 @@ export default function AboutSection() {
           <div className="flex flex-col md:flex-row gap-8">
             <div className="md:w-2/3">
               <p className="text-gray-300 mb-6">
-                I'm a Digital Marketing Specialist with a strong foundation in SEO, SMO, and email marketing. With a
-                background in Botany and analytical thinking, I bring a unique perspective to digital marketing
-                strategies.
-              </p>
+                I'm a Digital Marketing Specialist with a strong foundation in SEO, SMO, and email marketing, 
+                content strategy, and social media, focused on increasing web traffic and improving keyword rankings, with a background in Botany.
+                </p>  
               <p className="text-gray-300">
                 My approach combines data-driven insights with creative problem-solving to boost brand visibility and
                 engagement. I'm passionate about optimizing digital presence and delivering measurable results.
@@ -68,19 +67,19 @@ export default function AboutSection() {
               </div>
               <div className="flex items-center">
                 <Phone className="h-5 w-5 text-purple-400 mr-3" />
-                <a href="tel:9668202775" className="text-gray-300 hover:text-purple-400 transition-colors">
-                  9668202775
+                <a href="#contact" className="text-gray-300 hover:text-purple-400 transition-colors">
+                  Contact me here
                 </a>
               </div>
               <div className="flex items-center">
                 <Linkedin className="h-5 w-5 text-purple-400 mr-3" />
-                <a href="#" className="text-gray-300 hover:text-purple-400 transition-colors">
+                <a href="https://www.linkedin.com/in/debasmita-behera-19a168362/" className="text-gray-300 hover:text-purple-400 transition-colors">
                   LinkedIn
                 </a>
               </div>
               <div className="flex items-center">
                 <Github className="h-5 w-5 text-purple-400 mr-3" />
-                <a href="#" className="text-gray-300 hover:text-purple-400 transition-colors">
+                <a href="https://github.com/blackberry-is-coding" className="text-gray-300 hover:text-purple-400 transition-colors">
                   Github
                 </a>
               </div>

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { Send, Mail, MessageSquare } from "lucide-react"
+import { Send, Mail, MessageSquare, Phone } from "lucide-react"
 
 export default function ContactSection() {
   const [isVisible, setIsVisible] = useState(false)
@@ -84,6 +84,15 @@ export default function ContactSection() {
                       className="text-gray-300 hover:text-purple-400 transition-colors"
                     >
                       debasmitabehera0509@gmail.com
+                    </a>
+                  </div>
+                  <div className="flex items-center">
+                    <Phone className="h-5 w-5 text-purple-400 mr-3" />
+                    <a
+                      href="#contact"
+                      className="text-gray-300 hover:text-purple-400 transition-colors"
+                    >
+                      9668202775
                     </a>
                   </div>
                 </div>
