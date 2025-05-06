@@ -46,8 +46,8 @@ export default function AboutSection() {
                 content strategy, and social media, focused on increasing web traffic and improving keyword rankings, with a background in Botany.
                 </p>  
               <p className="text-gray-300">
-              "Skilled in front-end development with a focus on UI/UX design, using HTML, CSS, JavaScript, React, and Figma to create responsive,
-               user-friendly websites, and leveraging generative AI tools for content and design enhancement."
+              Skilled in front-end development with a focus on UI/UX design, using HTML, CSS, JavaScript, React, and Figma to create responsive,
+               user-friendly websites, and leveraging generative AI tools for content and design enhancement.
               </p>
             </div>
 
