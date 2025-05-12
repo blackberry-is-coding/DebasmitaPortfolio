@@ -9,7 +9,11 @@ export const metadata: Metadata = {
   title: "Debasmita Behera | Digital Marketing Specialist",
   description:
     "Portfolio of Debasmita Behera, a Digital Marketing Specialist with expertise in SEO, SMO, and Email Marketing",
-    generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: '/image.png',
+    apple: '/image.png'
+  }
 }
 
 export default function RootLayout({
