@@ -80,23 +80,56 @@ export default function SakuraAnimation({ isScrolling = false }: SakuraAnimation
     }
   }, [dimensions.width, isMobile, petalImages])
 
+  // Track last animation time for throttling
+  const lastAnimationTimeRef = useRef<number>(0)
+  const scrollSpeedRef = useRef<number>(0)
+  
   // Animate the petals with improved performance
-  const animatePetals = useCallback(() => {
-    // Skip animation frames during scrolling on mobile for better performance
-    if (isScrolling && isMobile) {
+  const animatePetals = useCallback((timestamp: number = 0) => {
+    // Completely freeze animation during fast scrolling on mobile
+    if (isScrolling && isMobile && scrollSpeedRef.current > 30) {
       animationRef.current = requestAnimationFrame(animatePetals)
       return
     }
     
+    // Throttle animation frames on mobile for better performance
+    // Only update every 2-3 frames during normal scrolling
+    if (isMobile) {
+      const elapsed = timestamp - lastAnimationTimeRef.current
+      const frameInterval = isScrolling ? 50 : 16 // ~60fps normally, ~20fps during scroll
+      
+      if (elapsed < frameInterval) {
+        animationRef.current = requestAnimationFrame(animatePetals)
+        return
+      }
+      
+      lastAnimationTimeRef.current = timestamp
+    }
+    
     setPetals((currentPetals) => {
       // Use a simpler animation during scrolling
-      const swayAmount = isScrolling ? 1.0 : 2.8
-      const rotationSpeed = isScrolling ? 0.5 : 1.0
+      const swayAmount = isScrolling ? 0.5 : 2.8
+      const rotationSpeed = isScrolling ? 0.2 : 1.0
       
       return currentPetals
         .map((petal) => {
-          // Enhanced floating motion with more pronounced swaying
-          // Simplified calculation during scrolling
+          // Skip complex calculations during scrolling
+          if (isScrolling && isMobile) {
+            // Just move petals down during scrolling without side movement
+            const y = petal.y + petal.speed
+            
+            // Remove petals that have fallen below the screen
+            if (y > dimensions.height + 50) {
+              return null
+            }
+            
+            return {
+              ...petal,
+              y,
+            }
+          }
+          
+          // Normal animation when not scrolling
           const x = petal.x + Math.sin(petal.y / 50) * swayAmount
           const y = petal.y + petal.speed
           const rotation = petal.rotation + (petal.rotationSpeed * rotationSpeed)
@@ -187,15 +220,30 @@ export default function SakuraAnimation({ isScrolling = false }: SakuraAnimation
   }, [animatePetals, createPetal, getOptimalPetalCount, isMobile, isScrolling])
 
   // Optimize rendering during scrolling
-  const containerStyle = useMemo(() => ({
-    opacity: isScrolling && isMobile ? 0.7 : 1, // Reduce opacity during scrolling on mobile
-    transition: `opacity ${isScrolling ? '0ms' : '300ms'} ease-out`,
-  }), [isScrolling, isMobile])
+  const containerStyle = useMemo(() => {
+    // Hide animation completely during fast scrolling
+    const isFastScrolling = isScrolling && isMobile && scrollSpeedRef.current > 30
+    
+    return {
+      opacity: isFastScrolling ? 0 : isScrolling && isMobile ? 0.4 : 1,
+      transition: `opacity ${isScrolling ? '0ms' : '300ms'} ease-out`,
+      visibility: isFastScrolling ? 'hidden' : 'visible',
+      // Use transform: translateZ(0) to force GPU acceleration
+      transform: 'translateZ(0)',
+    }
+  }, [isScrolling, isMobile])
 
   // Optimize petal rendering
   const renderPetal = useCallback((petal: Petal) => {
     // Simplified transforms during scrolling
     const useSimpleTransforms = isScrolling && isMobile
+    
+    // During scrolling, don't render petals that are off-screen to reduce workload
+    if (isScrolling && isMobile) {
+      if (petal.y < -100 || petal.y > dimensions.height + 50) {
+        return null
+      }
+    }
     
     return (
       <div
@@ -206,11 +254,13 @@ export default function SakuraAnimation({ isScrolling = false }: SakuraAnimation
           top: `${petal.y}px`,
           width: `${petal.size}px`,
           height: `${petal.size}px`,
-          opacity: petal.opacity,
+          opacity: petal.opacity * (isScrolling && isMobile ? 0.7 : 1),
           transform: `rotate(${petal.rotation}deg) scale(${petal.scale})`,
-          transition: useSimpleTransforms ? 'none' : "transform 0.05s linear",
-          filter: useSimpleTransforms ? 'none' : `drop-shadow(0 0 2px rgba(255, 255, 255, 0.3)) blur(${(1 - petal.scale) * 0.5}px)`,
+          transition: 'none', // Disable all transitions during any state for better performance
+          filter: useSimpleTransforms ? 'none' : `blur(${(1 - petal.scale) * 0.5}px)`,
           zIndex: petal.zIndex,
+          // Disable pointer events for better performance
+          pointerEvents: 'none',
         }}
       >
         <img 
@@ -220,23 +270,72 @@ export default function SakuraAnimation({ isScrolling = false }: SakuraAnimation
           className="w-full h-full object-contain"
           style={{
             transform: useSimpleTransforms 
-              ? `rotateZ(${petal.rotation * 0.5}deg)`
+              ? 'none' // No transform during scrolling
               : `perspective(800px) rotateX(${Math.sin(petal.rotation * 0.01) * 15}deg) rotateY(${Math.cos(petal.rotation * 0.01) * 15}deg) rotateZ(${petal.rotation * 0.5}deg)`,
-            filter: useSimpleTransforms ? 'none' : `drop-shadow(0 0 4px rgba(255, 192, 203, 0.4))`,
-            transition: useSimpleTransforms ? 'none' : "transform 0.03s linear",
-            willChange: "transform",
+            filter: useSimpleTransforms ? 'none' : 'none', // Remove all filters for better performance
+            transition: 'none',
+            willChange: useSimpleTransforms ? 'auto' : 'transform', // Only use willChange when needed
           }}
         />
       </div>
     )
-  }, [isScrolling, isMobile, petalImages])
+  }, [isScrolling, isMobile, petalImages, dimensions.height])
+
+  // Add scroll speed detection
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    let lastScrollY = window.scrollY
+    let lastScrollTime = performance.now()
+    
+    const detectScrollSpeed = () => {
+      const currentTime = performance.now()
+      const currentScrollY = window.scrollY
+      const timeDelta = currentTime - lastScrollTime
+      
+      if (timeDelta > 0) {
+        // Calculate scroll speed in pixels per 100ms
+        const scrollDelta = Math.abs(currentScrollY - lastScrollY)
+        scrollSpeedRef.current = (scrollDelta / timeDelta) * 100
+      }
+      
+      lastScrollTime = currentTime
+      lastScrollY = currentScrollY
+    }
+    
+    window.addEventListener('scroll', detectScrollSpeed, { passive: true })
+    
+    return () => {
+      window.removeEventListener('scroll', detectScrollSpeed)
+    }
+  }, [])
+  
+  // Conditionally render petals based on scroll state
+  const visiblePetals = useMemo(() => {
+    // During fast scrolling on mobile, don't process petals at all
+    if (isScrolling && isMobile && scrollSpeedRef.current > 30) {
+      return []
+    }
+    
+    // During normal scrolling on mobile, only render visible petals
+    if (isScrolling && isMobile) {
+      return petals
+        .filter(petal => petal.y >= -100 && petal.y <= dimensions.height + 50)
+        .map(renderPetal)
+        .filter(Boolean) // Filter out null values
+    }
+    
+    // Normal rendering
+    return petals.map(renderPetal).filter(Boolean)
+  }, [petals, renderPetal, isScrolling, isMobile, dimensions.height])
 
   return (
     <div 
       className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
       style={containerStyle}
+      aria-hidden="true"
     >
-      {petals.map(renderPetal)}
+      {visiblePetals}
     </div>
   )
 }

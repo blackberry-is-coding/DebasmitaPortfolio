@@ -61,19 +61,27 @@ export default function Home() {
   }, [isScrolling])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-purple-950 to-gray-950 text-white relative">
+    <div 
+      className="min-h-screen text-white relative hardware-accelerated"
+      style={{
+        backgroundColor: 'rgb(var(--background-start-rgb))',
+        backgroundImage: isScrolling && window.innerWidth <= 768 
+          ? 'none' 
+          : 'linear-gradient(to bottom, rgb(var(--background-start-rgb)), rgb(17, 24, 39, 1), rgb(88, 28, 135, 0.8), rgb(17, 24, 39, 1))'
+      }}
+    >
       {/* Pass isScrolling state to SakuraAnimation to optimize during scroll */}
       <SakuraAnimation isScrolling={isScrolling} />
       
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all ${
+        className={`fixed top-0 left-0 right-0 z-50 hardware-accelerated ${
           scrolled 
-            ? "bg-gray-950/90 backdrop-blur-md shadow-lg shadow-purple-900/10" 
+            ? "bg-gray-950/90 shadow-lg shadow-purple-900/10" 
             : "bg-transparent"
         }`}
         style={{ 
-          transitionDuration: isScrolling ? '0ms' : '300ms',
-          willChange: 'background-color, box-shadow'
+          backdropFilter: isScrolling ? 'none' : 'blur(8px)',
+          transitionProperty: 'none',
         }}
       >
         <nav className="container mx-auto px-4 py-3 md:py-4 flex justify-between items-center">
@@ -104,7 +112,7 @@ export default function Home() {
       {/* Mobile Navigation */}
       <MobileNav isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
 
-      <main className="overflow-hidden">
+      <main className="overflow-hidden hardware-accelerated">
         <HeroSection />
         <AboutSection />
         <EducationSection />

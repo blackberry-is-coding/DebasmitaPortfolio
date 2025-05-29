@@ -3,6 +3,17 @@
  * Uses requestAnimationFrame for better performance than CSS scroll-behavior
  */
 
+// Track scroll speed for performance optimizations
+let lastScrollY = 0
+let lastScrollTime = 0
+let scrollSpeed = 0
+
+// Track if we're in a programmatic scroll
+let isProgrammaticScroll = false
+
+/**
+ * Optimized smooth scroll with adaptive performance
+ */
 export const smoothScrollTo = (
   targetPosition: number,
   duration: number = 500,
@@ -16,12 +27,25 @@ export const smoothScrollTo = (
     return
   }
 
-  const startPosition = window.scrollY
+  // For mobile devices, use a simpler approach for better performance
+  const isMobile = window.innerWidth <= 768
+  if (isMobile) {
+    // On mobile, use a simpler approach with fewer animation frames
+    simpleSmoothScrollMobile(currentPosition, targetPosition, duration, callback)
+    return
+  }
+
+  // Desktop devices can handle more complex animations
+  const startPosition = currentPosition
   const distance = targetPosition - startPosition
   let startTime: number | null = null
 
+  // Mark that we're doing a programmatic scroll
+  isProgrammaticScroll = true
+  
   // Add scrolling class to optimize animations during scroll
   document.documentElement.classList.add('is-scrolling')
+  document.body.style.pointerEvents = 'none' // Disable interactions during scroll
 
   // Easing function for smoother acceleration/deceleration
   const easeInOutQuad = (t: number): number => {
@@ -34,23 +58,103 @@ export const smoothScrollTo = (
     const progress = Math.min(timeElapsed / duration, 1)
     const easedProgress = easeInOutQuad(progress)
     
-    window.scrollTo(0, startPosition + distance * easedProgress)
+    window.scrollTo({
+      top: startPosition + distance * easedProgress,
+      behavior: 'auto' // Use 'auto' instead of 'smooth' for better control
+    })
     
-    if (timeElapsed < duration) {
+    if (timeElapsed < duration && progress < 1) {
       requestAnimationFrame(animateScroll)
     } else {
       // Ensure we end exactly at the target position
-      window.scrollTo(0, targetPosition)
+      window.scrollTo({
+        top: targetPosition,
+        behavior: 'auto'
+      })
       
-      // Remove scrolling class after a short delay
-      setTimeout(() => {
-        document.documentElement.classList.remove('is-scrolling')
-        if (callback) callback()
-      }, 100)
+      // Clean up
+      finishScroll(callback)
     }
   }
   
   requestAnimationFrame(animateScroll)
+}
+
+/**
+ * Simpler scroll function for mobile devices
+ * Uses fewer animation frames for better performance
+ */
+const simpleSmoothScrollMobile = (
+  startPosition: number,
+  targetPosition: number,
+  duration: number,
+  callback?: () => void
+): void => {
+  // Mark that we're doing a programmatic scroll
+  isProgrammaticScroll = true
+  
+  // Add scrolling class to optimize animations during scroll
+  document.documentElement.classList.add('is-scrolling')
+  document.body.style.pointerEvents = 'none' // Disable interactions during scroll
+  
+  // Calculate total distance
+  const distance = targetPosition - startPosition
+  
+  // For very short distances, just jump there
+  if (Math.abs(distance) < 200) {
+    window.scrollTo(0, targetPosition)
+    finishScroll(callback)
+    return
+  }
+  
+  // For mobile, use a stepped approach with fewer frames
+  // This reduces the rendering load significantly
+  const steps = Math.min(Math.floor(duration / 50), 10) // Max 10 steps
+  const timePerStep = duration / steps
+  let currentStep = 0
+  
+  const doStep = () => {
+    currentStep++
+    
+    // Calculate progress (0 to 1)
+    const progress = currentStep / steps
+    
+    // Simple ease-in-out
+    const easedProgress = progress < 0.5 
+      ? 2 * progress * progress 
+      : -1 + (4 - 2 * progress) * progress
+    
+    // Calculate new position
+    const newPosition = startPosition + distance * easedProgress
+    
+    // Scroll to new position
+    window.scrollTo(0, newPosition)
+    
+    // Continue if we have more steps
+    if (currentStep < steps) {
+      setTimeout(doStep, timePerStep)
+    } else {
+      // Final position
+      window.scrollTo(0, targetPosition)
+      finishScroll(callback)
+    }
+  }
+  
+  // Start the stepped animation
+  setTimeout(doStep, timePerStep)
+}
+
+/**
+ * Clean up after scrolling finishes
+ */
+const finishScroll = (callback?: () => void): void => {
+  // Small delay before removing scrolling class
+  setTimeout(() => {
+    document.documentElement.classList.remove('is-scrolling')
+    document.body.style.pointerEvents = '' // Re-enable interactions
+    isProgrammaticScroll = false
+    if (callback) callback()
+  }, 100)
 }
 
 /**
@@ -81,7 +185,7 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
   const isMobile = window.innerWidth <= 768
   
   // Use shorter duration on mobile for snappier response
-  const scrollDuration = isMobile ? 400 : 600
+  const scrollDuration = isMobile ? 300 : 600
   
   // Handle all anchor links
   document.addEventListener('click', (e) => {
@@ -98,16 +202,49 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
     }
   })
   
-  // Optimize scroll performance
-  let scrollTimeout: NodeJS.Timeout
+  // Track scroll speed for performance optimizations
   window.addEventListener('scroll', () => {
+    // Skip if this is a programmatic scroll
+    if (isProgrammaticScroll) return
+    
+    // Add scrolling class
     if (!document.documentElement.classList.contains('is-scrolling')) {
       document.documentElement.classList.add('is-scrolling')
     }
     
+    // Calculate scroll speed
+    const now = performance.now()
+    const currentScrollY = window.scrollY
+    
+    if (lastScrollTime > 0) {
+      const deltaTime = now - lastScrollTime
+      if (deltaTime > 0) {
+        const deltaY = Math.abs(currentScrollY - lastScrollY)
+        scrollSpeed = (deltaY / deltaTime) * 100 // px per 100ms
+        
+        // Add fast-scrolling class if speed exceeds threshold
+        if (scrollSpeed > 30) {
+          document.documentElement.classList.add('is-fast-scrolling')
+        } else {
+          document.documentElement.classList.remove('is-fast-scrolling')
+        }
+      }
+    }
+    
+    lastScrollY = currentScrollY
+    lastScrollTime = now
+  }, { passive: true })
+  
+  // Clean up scroll classes after scrolling stops
+  let scrollTimeout: NodeJS.Timeout
+  const cleanupScroll = () => {
     clearTimeout(scrollTimeout)
     scrollTimeout = setTimeout(() => {
       document.documentElement.classList.remove('is-scrolling')
-    }, 150)
-  }, { passive: true })
+      document.documentElement.classList.remove('is-fast-scrolling')
+      scrollSpeed = 0
+    }, 100)
+  }
+  
+  window.addEventListener('scroll', cleanupScroll, { passive: true })
 }

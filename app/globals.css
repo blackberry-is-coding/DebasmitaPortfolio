@@ -187,18 +187,46 @@ body {
   }
   
   /* Reduce animation complexity during scroll */
-  .animate-float, .animate-float-delay, .animate-pulse {
-    animation-play-state: paused;
-  }
-  
   html.is-scrolling .animate-float,
   html.is-scrolling .animate-float-delay,
   html.is-scrolling .animate-pulse {
-    animation-play-state: paused;
+    animation-play-state: paused !important;
   }
   
   /* Optimize rendering during scroll */
   html.is-scrolling * {
     transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
   }
+  
+  /* Completely disable animations during fast scrolling */
+  html.is-fast-scrolling * {
+    animation: none !important;
+    transition: none !important;
+    transform: translateZ(0) !important;
+  }
+  
+  /* Hide non-essential decorative elements during fast scrolling */
+  html.is-fast-scrolling .bg-gradient-radial,
+  html.is-fast-scrolling .bg-gradient-conic,
+  html.is-fast-scrolling .blur-3xl,
+  html.is-fast-scrolling .animate-pulse {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+  
+  /* Optimize background rendering during scrolling */
+  html.is-scrolling .bg-gradient-to-b {
+    background-attachment: scroll !important;
+    background-image: none !important;
+    background-color: rgb(var(--background-start-rgb)) !important;
+  }
+}
+
+/* Force hardware acceleration for smoother scrolling */
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
 }
