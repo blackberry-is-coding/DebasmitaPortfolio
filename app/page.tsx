@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import HeroSection from "@/components/hero-section"
 import AboutSection from "@/components/about-section"
 import EducationSection from "@/components/education-section"
@@ -12,30 +12,69 @@ import Footer from "@/components/footer"
 import SakuraAnimation from "@/components/sakura-animation"
 import MobileNav from "@/components/mobile-nav"
 import { Menu } from "lucide-react"
+import { initSmoothScrolling } from "@/utils/smoothScroll"
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
-  // Handle scroll events for header styling
+  // Initialize smooth scrolling and optimize scroll performance
   useEffect(() => {
+    // Only run on client
+    if (typeof window === 'undefined') return
+    
+    // Initialize smooth scrolling with header offset
+    initSmoothScrolling(60)
+    
     const handleScroll = () => {
+      // Update header appearance
       setScrolled(window.scrollY > 10)
+      
+      // Track scrolling state for animation optimization
+      if (!isScrolling) {
+        setIsScrolling(true)
+        document.documentElement.classList.add('is-scrolling')
+      }
+      
+      // Clear previous timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      
+      // Set timeout to detect when scrolling stops
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false)
+        document.documentElement.classList.remove('is-scrolling')
+      }, 150)
     }
     
     window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
+  }, [isScrolling])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-purple-950 to-gray-950 text-white relative">
-      <SakuraAnimation />
+      {/* Pass isScrolling state to SakuraAnimation to optimize during scroll */}
+      <SakuraAnimation isScrolling={isScrolling} />
+      
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all ${
           scrolled 
             ? "bg-gray-950/90 backdrop-blur-md shadow-lg shadow-purple-900/10" 
             : "bg-transparent"
         }`}
+        style={{ 
+          transitionDuration: isScrolling ? '0ms' : '300ms',
+          willChange: 'background-color, box-shadow'
+        }}
       >
         <nav className="container mx-auto px-4 py-3 md:py-4 flex justify-between items-center">
           <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">

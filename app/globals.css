@@ -174,13 +174,31 @@ body {
     will-change: transform;
   }
   
-  /* Smooth scrolling for anchor links */
-  .scroll-smooth {
-    scroll-behavior: smooth;
-  }
-  
   /* Prevent text selection on interactive elements */
   .select-none {
     user-select: none;
+  }
+}
+
+/* Optimize scrolling performance on mobile */
+@media (max-width: 768px) {
+  html {
+    scroll-behavior: auto !important; /* Use JS for smooth scrolling instead of CSS */
+  }
+  
+  /* Reduce animation complexity during scroll */
+  .animate-float, .animate-float-delay, .animate-pulse {
+    animation-play-state: paused;
+  }
+  
+  html.is-scrolling .animate-float,
+  html.is-scrolling .animate-float-delay,
+  html.is-scrolling .animate-pulse {
+    animation-play-state: paused;
+  }
+  
+  /* Optimize rendering during scroll */
+  html.is-scrolling * {
+    transition-duration: 0ms !important;
   }
 }

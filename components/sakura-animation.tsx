@@ -16,7 +16,11 @@ interface Petal {
   imageIndex: number
 }
 
-export default function SakuraAnimation() {
+interface SakuraAnimationProps {
+  isScrolling?: boolean
+}
+
+export default function SakuraAnimation({ isScrolling = false }: SakuraAnimationProps) {
   const [petals, setPetals] = useState<Petal[]>([])
   const [dimensions, setDimensions] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1920,
@@ -24,6 +28,8 @@ export default function SakuraAnimation() {
   })
   const petalIdRef = useRef(0) // Unique ID generator
   const animationRef = useRef<number | null>(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isMobile = useMemo(() => dimensions.width <= 768, [dimensions.width])
   
   // Memoize the petal images to prevent unnecessary re-renders
   const petalImages = useMemo(() => [
@@ -38,26 +44,26 @@ export default function SakuraAnimation() {
   const getOptimalPetalCount = useCallback(() => {
     const area = dimensions.width * dimensions.height
     // Fewer petals for smaller screens, more for larger screens
-    if (area < 500000) return { initial: 15, max: 40 } // Mobile
-    if (area < 1000000) return { initial: 20, max: 60 } // Tablet
-    return { initial: 30, max: 80 } // Desktop
+    if (area < 500000) return { initial: 12, max: 30 } // Mobile - reduced for better performance
+    if (area < 1000000) return { initial: 18, max: 50 } // Tablet
+    return { initial: 25, max: 70 } // Desktop
   }, [dimensions])
 
   // Create a new petal with responsive sizing
   const createPetal = useCallback((): Petal => {
     const id = petalIdRef.current++
     // Responsive scale based on screen size
-    const baseScale = dimensions.width < 768 ? 0.5 : 0.6
-    const scaleVariation = dimensions.width < 768 ? 0.4 : 0.6
+    const baseScale = isMobile ? 0.5 : 0.6
+    const scaleVariation = isMobile ? 0.3 : 0.5
     const scale = baseScale + Math.random() * scaleVariation
     
     // Responsive size based on screen size
-    const baseSize = dimensions.width < 768 ? 25 : 35
-    const sizeVariation = dimensions.width < 768 ? 15 : 25
+    const baseSize = isMobile ? 22 : 32
+    const sizeVariation = isMobile ? 12 : 22
     
     // Faster speed for smoother animation
-    const baseSpeed = dimensions.width < 768 ? 0.8 : 1.0
-    const speedVariation = dimensions.width < 768 ? 1.8 : 2.2
+    const baseSpeed = isMobile ? 1.0 : 1.2
+    const speedVariation = isMobile ? 1.5 : 2.0
     
     return {
       id,
@@ -65,25 +71,35 @@ export default function SakuraAnimation() {
       y: -30 - Math.random() * 100,
       size: baseSize + Math.random() * sizeVariation,
       rotation: Math.random() * 360,
-      rotationSpeed: 0.8 + Math.random() * 2.0, // Increased rotation speed
-      speed: baseSpeed + Math.random() * speedVariation, // Increased falling speed
+      rotationSpeed: 0.8 + Math.random() * 1.8,
+      speed: baseSpeed + Math.random() * speedVariation,
       opacity: 0.6 + Math.random() * 0.4,
       zIndex: Math.floor(Math.random() * 10),
       scale,
       imageIndex: Math.floor(Math.random() * petalImages.length),
     }
-  }, [dimensions, petalImages])
+  }, [dimensions.width, isMobile, petalImages])
 
   // Animate the petals with improved performance
   const animatePetals = useCallback(() => {
+    // Skip animation frames during scrolling on mobile for better performance
+    if (isScrolling && isMobile) {
+      animationRef.current = requestAnimationFrame(animatePetals)
+      return
+    }
+    
     setPetals((currentPetals) => {
+      // Use a simpler animation during scrolling
+      const swayAmount = isScrolling ? 1.0 : 2.8
+      const rotationSpeed = isScrolling ? 0.5 : 1.0
+      
       return currentPetals
         .map((petal) => {
           // Enhanced floating motion with more pronounced swaying
-          // Faster horizontal movement for more dynamic animation
-          const x = petal.x + Math.sin(petal.y / 50) * 2.8
+          // Simplified calculation during scrolling
+          const x = petal.x + Math.sin(petal.y / 50) * swayAmount
           const y = petal.y + petal.speed
-          const rotation = petal.rotation + petal.rotationSpeed
+          const rotation = petal.rotation + (petal.rotationSpeed * rotationSpeed)
 
           // Remove petals that have fallen below the screen
           if (y > dimensions.height + 50) {
@@ -101,7 +117,7 @@ export default function SakuraAnimation() {
     })
 
     animationRef.current = requestAnimationFrame(animatePetals)
-  }, [dimensions.height])
+  }, [dimensions.height, isScrolling, isMobile])
 
   // Handle window resize for responsiveness
   useEffect(() => {
@@ -115,7 +131,7 @@ export default function SakuraAnimation() {
     // Set initial dimensions
     if (typeof window !== 'undefined') {
       handleResize()
-      window.addEventListener('resize', handleResize)
+      window.addEventListener('resize', handleResize, { passive: true })
     }
 
     return () => {
@@ -139,61 +155,88 @@ export default function SakuraAnimation() {
     // Start animation loop
     animationRef.current = requestAnimationFrame(animatePetals)
 
-    // Periodically add new petals - faster generation for smoother appearance
-    const interval = setInterval(() => {
+    // Periodically add new petals - pause during scrolling
+    const addNewPetals = () => {
+      if (isScrolling && isMobile) return
+      
       setPetals((currentPetals) => {
-        // Add new petals at a time
+        // Add fewer petals at a time on mobile
         const newPetals = []
-        const count = Math.floor(Math.random() * 3) + 1
+        const count = isMobile ? 1 : Math.floor(Math.random() * 3) + 1
         for (let i = 0; i < count; i++) {
           newPetals.push(createPetal())
         }
         
         // Limit total flowers to prevent performance issues
-        // Use responsive max count
         return [...currentPetals, ...newPetals].slice(-max)
       })
-    }, 800) // Faster generation for more continuous flow
+    }
+    
+    // Use different intervals for mobile vs desktop
+    const intervalTime = isMobile ? 1200 : 800
+    intervalRef.current = setInterval(addNewPetals, intervalTime)
 
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
-      clearInterval(interval)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
     }
-  }, [animatePetals, createPetal, getOptimalPetalCount])
+  }, [animatePetals, createPetal, getOptimalPetalCount, isMobile, isScrolling])
+
+  // Optimize rendering during scrolling
+  const containerStyle = useMemo(() => ({
+    opacity: isScrolling && isMobile ? 0.7 : 1, // Reduce opacity during scrolling on mobile
+    transition: `opacity ${isScrolling ? '0ms' : '300ms'} ease-out`,
+  }), [isScrolling, isMobile])
+
+  // Optimize petal rendering
+  const renderPetal = useCallback((petal: Petal) => {
+    // Simplified transforms during scrolling
+    const useSimpleTransforms = isScrolling && isMobile
+    
+    return (
+      <div
+        key={petal.id}
+        className="absolute will-change-transform"
+        style={{
+          left: `${petal.x}px`,
+          top: `${petal.y}px`,
+          width: `${petal.size}px`,
+          height: `${petal.size}px`,
+          opacity: petal.opacity,
+          transform: `rotate(${petal.rotation}deg) scale(${petal.scale})`,
+          transition: useSimpleTransforms ? 'none' : "transform 0.05s linear",
+          filter: useSimpleTransforms ? 'none' : `drop-shadow(0 0 2px rgba(255, 255, 255, 0.3)) blur(${(1 - petal.scale) * 0.5}px)`,
+          zIndex: petal.zIndex,
+        }}
+      >
+        <img 
+          src={petalImages[petal.imageIndex]} 
+          alt=""
+          aria-hidden="true"
+          className="w-full h-full object-contain"
+          style={{
+            transform: useSimpleTransforms 
+              ? `rotateZ(${petal.rotation * 0.5}deg)`
+              : `perspective(800px) rotateX(${Math.sin(petal.rotation * 0.01) * 15}deg) rotateY(${Math.cos(petal.rotation * 0.01) * 15}deg) rotateZ(${petal.rotation * 0.5}deg)`,
+            filter: useSimpleTransforms ? 'none' : `drop-shadow(0 0 4px rgba(255, 192, 203, 0.4))`,
+            transition: useSimpleTransforms ? 'none' : "transform 0.03s linear",
+            willChange: "transform",
+          }}
+        />
+      </div>
+    )
+  }, [isScrolling, isMobile, petalImages])
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      {petals.map((petal) => (
-        <div
-          key={petal.id}
-          className="absolute will-change-transform"
-          style={{
-            left: `${petal.x}px`,
-            top: `${petal.y}px`,
-            width: `${petal.size}px`,
-            height: `${petal.size}px`,
-            opacity: petal.opacity,
-            transform: `rotate(${petal.rotation}deg) scale(${petal.scale})`,
-            transition: "transform 0.05s linear, opacity 0.3s ease", // Faster transitions for smoother animation
-            filter: `drop-shadow(0 0 2px rgba(255, 255, 255, 0.3)) blur(${(1 - petal.scale) * 0.5}px)`,
-            zIndex: petal.zIndex,
-          }}
-        >
-          <img 
-            src={petalImages[petal.imageIndex]} 
-            alt="Cherry blossom" 
-            className="w-full h-full object-contain"
-            style={{
-              transform: `perspective(800px) rotateX(${Math.sin(petal.rotation * 0.01) * 15}deg) rotateY(${Math.cos(petal.rotation * 0.01) * 15}deg) rotateZ(${petal.rotation * 0.5}deg)`,
-              filter: `drop-shadow(0 0 4px rgba(255, 192, 203, 0.4))`,
-              transition: "transform 0.03s linear", // Even smoother spinning animation
-              willChange: "transform", // Performance optimization hint
-            }}
-          />
-        </div>
-      ))}
+    <div 
+      className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
+      style={containerStyle}
+    >
+      {petals.map(renderPetal)}
     </div>
   )
 }
