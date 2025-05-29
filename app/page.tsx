@@ -25,6 +25,18 @@ export default function Home() {
     // Only run on client
     if (typeof window === 'undefined') return
     
+    // Check if we're on mobile
+    const isMobile = window.innerWidth <= 768
+    
+    // For mobile devices, ensure all scrolling classes are removed
+    if (isMobile) {
+      document.documentElement.classList.remove('is-scrolling')
+      document.documentElement.classList.remove('is-fast-scrolling')
+      
+      // Add a special class to indicate we're on mobile
+      document.documentElement.classList.add('mobile-view')
+    }
+    
     // Import the smooth reveal utility
     import('@/utils/smoothReveal').then(({ initSmoothReveal }) => {
       // Initialize smooth scrolling with header offset
@@ -33,8 +45,8 @@ export default function Home() {
       // Initialize smooth reveal animations with a small delay to ensure DOM is ready
       setTimeout(() => {
         initSmoothReveal('[data-animate]', {
-          duration: window.innerWidth <= 768 ? 600 : 800,
-          distance: window.innerWidth <= 768 ? '20px' : '30px',
+          duration: isMobile ? 600 : 800,
+          distance: isMobile ? '20px' : '30px',
         })
       }, 100)
     })
@@ -43,25 +55,72 @@ export default function Home() {
       // Update header appearance
       setScrolled(window.scrollY > 10)
       
-      // Track scrolling state for animation optimization
-      if (!isScrolling) {
-        setIsScrolling(true)
-        document.documentElement.classList.add('is-scrolling')
+      // On mobile, use a simpler approach to scrolling
+      if (isMobile) {
+        // Only add the scrolling class briefly during scroll
+        if (!isScrolling) {
+          setIsScrolling(true)
+          document.documentElement.classList.add('is-scrolling')
+        }
+        
+        // Clear previous timeout
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current)
+        }
+        
+        // Set a short timeout to remove the scrolling class
+        scrollTimeoutRef.current = setTimeout(() => {
+          setIsScrolling(false)
+          document.documentElement.classList.remove('is-scrolling')
+        }, 100) // Use a shorter timeout on mobile
+      } else {
+        // Desktop behavior
+        if (!isScrolling) {
+          setIsScrolling(true)
+          document.documentElement.classList.add('is-scrolling')
+        }
+        
+        // Clear previous timeout
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current)
+        }
+        
+        // Set timeout to detect when scrolling stops
+        scrollTimeoutRef.current = setTimeout(() => {
+          setIsScrolling(false)
+          document.documentElement.classList.remove('is-scrolling')
+        }, 150)
       }
-      
-      // Clear previous timeout
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current)
-      }
-      
-      // Set timeout to detect when scrolling stops
-      scrollTimeoutRef.current = setTimeout(() => {
-        setIsScrolling(false)
-        document.documentElement.classList.remove('is-scrolling')
-      }, 150)
     }
     
     window.addEventListener("scroll", handleScroll, { passive: true })
+    
+    // Handle anchor links directly for mobile
+    if (isMobile) {
+      document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement
+        const anchor = target.closest('a[href^="#"]') as HTMLAnchorElement
+        
+        if (anchor) {
+          e.preventDefault()
+          
+          const targetId = anchor.getAttribute('href')?.substring(1)
+          if (targetId) {
+            const element = document.getElementById(targetId)
+            if (element) {
+              const elementPosition = element.getBoundingClientRect().top + window.scrollY
+              const targetPosition = elementPosition - 60 // Header offset
+              
+              // Use native scrolling on mobile
+              window.scrollTo({
+                top: targetPosition,
+                behavior: 'auto'
+              })
+            }
+          }
+        }
+      })
+    }
     
     return () => {
       window.removeEventListener("scroll", handleScroll)

@@ -185,49 +185,74 @@ body {
   scroll-behavior: smooth;
 }
 
-/* Disable CSS smooth scrolling on mobile devices */
+/* Mobile scrolling optimization */
 @media (max-width: 768px) {
+  /* Ensure smooth native scrolling on mobile */
+  html, body {
+    scroll-behavior: auto !important;
+    -webkit-overflow-scrolling: touch !important; /* Enable momentum scrolling on iOS */
+    overscroll-behavior-y: contain !important; /* Prevent pull-to-refresh */
+    scroll-snap-type: none !important;
+    touch-action: pan-y !important; /* Allow only vertical scrolling */
+  }
+  
+  /* Disable all custom scrolling behaviors */
   .scroll-smooth-desktop {
-    scroll-behavior: auto !important; /* Use JS for smooth scrolling instead of CSS */
+    scroll-behavior: auto !important;
+  }
+  
+  /* Prevent any scroll animations from interfering with native scrolling */
+  * {
+    scroll-snap-align: none !important;
+    scroll-snap-stop: normal !important;
+  }
+  
+  /* Optimize for native scrolling performance */
+  body {
+    will-change: scroll-position !important;
+  }
+  
+  /* Special class for mobile view */
+  html.mobile-view {
+    /* Force native scrolling */
+    scroll-behavior: auto !important;
+    
+    /* Ensure smooth momentum scrolling */
+    -webkit-overflow-scrolling: touch !important;
+    
+    /* Prevent any custom scroll behaviors */
+    overscroll-behavior-y: contain !important;
+  }
+  
+  /* Ensure all scrollable elements use native scrolling */
+  html.mobile-view * {
+    scroll-behavior: auto !important;
+    transition-property: none !important;
   }
 }
 
 /* Optimize scrolling performance on mobile */
 @media (max-width: 768px) {
-  /* Reduce animation complexity during scroll */
+  /* Pause all animations during scroll to improve performance */
   html.is-scrolling .animate-float,
   html.is-scrolling .animate-float-delay,
-  html.is-scrolling .animate-pulse {
+  html.is-scrolling .animate-pulse,
+  html.is-scrolling [class*="animate-"] {
     animation-play-state: paused !important;
   }
   
-  /* Optimize rendering during scroll */
-  html.is-scrolling * {
-    transition-duration: 0ms !important;
-    animation-duration: 0ms !important;
-  }
-  
-  /* Completely disable animations during fast scrolling */
-  html.is-fast-scrolling * {
-    animation: none !important;
-    transition: none !important;
-    transform: translateZ(0) !important;
-  }
-  
-  /* Hide non-essential decorative elements during fast scrolling */
-  html.is-fast-scrolling .bg-gradient-radial,
-  html.is-fast-scrolling .bg-gradient-conic,
-  html.is-fast-scrolling .blur-3xl,
-  html.is-fast-scrolling .animate-pulse {
-    opacity: 0 !important;
-    visibility: hidden !important;
-  }
-  
-  /* Optimize background rendering during scrolling */
+  /* Simplify background during scroll for better performance */
   html.is-scrolling .bg-gradient-to-b {
     background-attachment: scroll !important;
     background-image: none !important;
     background-color: rgb(var(--background-start-rgb)) !important;
+  }
+  
+  /* Hide decorative elements during scroll */
+  html.is-scrolling .blur-3xl,
+  html.is-scrolling .bg-gradient-radial,
+  html.is-scrolling .bg-gradient-conic {
+    opacity: 0.2 !important;
   }
 }
 
