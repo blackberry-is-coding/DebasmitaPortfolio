@@ -4,22 +4,54 @@
 
 :root {
   --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 13, 12, 19;
-  --background-end-rgb: 9, 9, 13;
+  --background-start-rgb: 8, 7, 12;
+  --background-end-rgb: 5, 5, 8;
+  --pink-primary: 236, 72, 153;
+  --purple-primary: 168, 85, 247;
+  --animation-speed: 1;
+  
+  /* Reduce animation intensity on mobile for better performance */
+  @media (max-width: 768px) {
+    --animation-speed: 0.8;
+  }
+}
+
+/* Optimize rendering performance */
+html {
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(to bottom, rgb(var(--background-start-rgb)), rgb(var(--background-end-rgb)));
   min-height: 100vh;
+  overflow-x: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* Improve touch feedback on mobile */
+@media (max-width: 768px) {
+  a, button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  a:active, button:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Optimized animations with reduced complexity for mobile */
 @keyframes float {
   0% {
     transform: translateY(0) translateX(0);
   }
   50% {
-    transform: translateY(-10px) translateX(10px);
+    transform: translateY(calc(-10px * var(--animation-speed))) translateX(calc(10px * var(--animation-speed)));
   }
   100% {
     transform: translateY(0) translateX(0);
@@ -31,7 +63,7 @@ body {
     transform: translateY(0) translateX(0);
   }
   50% {
-    transform: translateY(10px) translateX(-10px);
+    transform: translateY(calc(10px * var(--animation-speed))) translateX(calc(-10px * var(--animation-speed)));
   }
   100% {
     transform: translateY(0) translateX(0);
@@ -40,42 +72,52 @@ body {
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-float-delay {
   animation: float-delay 8s ease-in-out infinite;
+  will-change: transform;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
+/* Scrollbar styling - hidden on mobile for cleaner look */
+@media (min-width: 769px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: rgba(31, 31, 31, 0.5);
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.5);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.8);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(31, 31, 31, 0.5);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.5);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.8);
-}
-
-/* Make background darker */
-:root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 8, 7, 12;
-  --background-end-rgb: 5, 5, 8;
-}
-
-/* Neon text effect for hero name */
+/* Mobile-optimized neon text effect */
 .neon-text {
   color: white;
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8), 0 0 10px rgba(168, 85, 247, 0.8), 0 0 15px rgba(168, 85, 247, 0.6), 0 0
-    20px rgba(236, 72, 153, 0.6), 0 0 25px rgba(236, 72, 153, 0.4), 0 0 35px rgba(168, 85, 247, 0.2);
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8), 
+               0 0 10px rgba(var(--purple-primary), 0.8), 
+               0 0 15px rgba(var(--purple-primary), 0.6);
+}
+
+/* Add more intense glow on larger screens */
+@media (min-width: 769px) {
+  .neon-text {
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8), 
+                 0 0 10px rgba(var(--purple-primary), 0.8), 
+                 0 0 15px rgba(var(--purple-primary), 0.6), 
+                 0 0 20px rgba(var(--pink-primary), 0.6), 
+                 0 0 25px rgba(var(--pink-primary), 0.4), 
+                 0 0 35px rgba(var(--purple-primary), 0.2);
+  }
 }
 
 /* Animated text for cycling between "Blackberry" and "dsmita.pro" */
@@ -92,27 +134,53 @@ body {
   left: 0;
   width: 100%;
   height: 2px;
-  background: linear-gradient(to right, #ec4899, #a855f7);
+  background: linear-gradient(to right, rgb(var(--pink-primary)), rgb(var(--purple-primary)));
   transform: scaleX(0);
   transform-origin: bottom right;
   transition: transform 0.5s ease-in-out;
   animation: lineAnimation 5s infinite;
+  will-change: transform;
 }
 
 @keyframes lineAnimation {
-  0%,
-  20% {
+  0%, 20% {
     transform: scaleX(0);
     transform-origin: bottom right;
   }
-  30%,
-  70% {
+  30%, 70% {
     transform: scaleX(1);
     transform-origin: bottom left;
   }
-  80%,
-  100% {
+  80%, 100% {
     transform: scaleX(0);
     transform-origin: bottom left;
+  }
+}
+
+/* Mobile-specific optimizations */
+@layer utilities {
+  /* Prevent overscroll bounce effect on iOS */
+  .overscroll-none {
+    overscroll-behavior: none;
+  }
+  
+  /* Optimize for touch interactions */
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+  
+  /* Optimize rendering performance */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  /* Smooth scrolling for anchor links */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent text selection on interactive elements */
+  .select-none {
+    user-select: none;
   }
 }

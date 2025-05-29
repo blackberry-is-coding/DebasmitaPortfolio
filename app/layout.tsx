@@ -1,9 +1,9 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], display: 'swap' })
 
 export const metadata: Metadata = {
   title: "Debasmita Behera | Digital Marketing Specialist",
@@ -16,6 +16,14 @@ export const metadata: Metadata = {
   }
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: '#0D0C13'
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -23,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.className} overscroll-none`}>{children}</body>
     </html>
   )
 }
