@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 interface Petal {
   id: number
@@ -18,78 +18,75 @@ interface Petal {
 
 export default function SakuraAnimation() {
   const [petals, setPetals] = useState<Petal[]>([])
+  const [dimensions, setDimensions] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1920,
+    height: typeof window !== 'undefined' ? window.innerHeight : 1080
+  })
   const petalIdRef = useRef(0) // Unique ID generator
-  const petalImages = [
+  const animationRef = useRef<number | null>(null)
+  
+  // Memoize the petal images to prevent unnecessary re-renders
+  const petalImages = useMemo(() => [
     "/images/cherry1.svg",
     "/images/cherry2.svg",
     "/images/cherry3.svg",
     "/images/cherry4.svg",
     "/images/cherry5.svg",
-  ]
+  ], [])
 
-  useEffect(() => {
-    // Create initial petals - fewer flowers for better performance and visibility
-    const initialPetals: Petal[] = []
-    for (let i = 0; i < 25; i++) {
-      initialPetals.push(createPetal())
-    }
-    setPetals(initialPetals)
+  // Determine the optimal number of petals based on screen size
+  const getOptimalPetalCount = useCallback(() => {
+    const area = dimensions.width * dimensions.height
+    // Fewer petals for smaller screens, more for larger screens
+    if (area < 500000) return { initial: 15, max: 40 } // Mobile
+    if (area < 1000000) return { initial: 20, max: 60 } // Tablet
+    return { initial: 30, max: 80 } // Desktop
+  }, [dimensions])
 
-    // Animation loop
-    let animationFrame = requestAnimationFrame(animatePetals)
-
-    // Periodically add new petals - slower for flowers as they're more visible
-    const interval = setInterval(() => {
-      setPetals((currentPetals) => {
-        // Add 1-2 flowers at a time
-        const newPetals = []
-        const count = Math.floor(Math.random() * 5) + 1
-        for (let i = 0; i < count; i++) {
-          newPetals.push(createPetal())
-        }
-        
-        // Limit total flowers to prevent performance issues
-        const maxPetals = 70 // Fewer flowers since they're more detailed
-        return [...currentPetals, ...newPetals].slice(-maxPetals)
-      })
-    }, 1200) // Slower generation for flowers
-
-    return () => {
-      cancelAnimationFrame(animationFrame)
-      clearInterval(interval)
-    }
-  }, [])
-
-  const createPetal = (): Petal => {
+  // Create a new petal with responsive sizing
+  const createPetal = useCallback((): Petal => {
     const id = petalIdRef.current++
-    const scale = 0.6 + Math.random() * 0.6 // Increased scale factor for bigger flowers
+    // Responsive scale based on screen size
+    const baseScale = dimensions.width < 768 ? 0.5 : 0.6
+    const scaleVariation = dimensions.width < 768 ? 0.4 : 0.6
+    const scale = baseScale + Math.random() * scaleVariation
+    
+    // Responsive size based on screen size
+    const baseSize = dimensions.width < 768 ? 25 : 35
+    const sizeVariation = dimensions.width < 768 ? 15 : 25
+    
+    // Faster speed for smoother animation
+    const baseSpeed = dimensions.width < 768 ? 0.8 : 1.0
+    const speedVariation = dimensions.width < 768 ? 1.8 : 2.2
+    
     return {
       id,
-      x: Math.random() * window.innerWidth,
+      x: Math.random() * dimensions.width,
       y: -30 - Math.random() * 100,
-      size: 35 + Math.random() * 25, // Increased size for bigger flowers
+      size: baseSize + Math.random() * sizeVariation,
       rotation: Math.random() * 360,
-      rotationSpeed: 0.5 + Math.random() * 1.5, // Faster rotation for more spinning
-      speed: 0.4 + Math.random() * 1.5, // Maintained falling speed
-      opacity: 0.6 + Math.random() * 0.4, // Maintained opacity
-      zIndex: Math.floor(Math.random() * 10), // Random z-index for 3D layering effect
-      scale, // Scale factor for 3D effect
+      rotationSpeed: 0.8 + Math.random() * 2.0, // Increased rotation speed
+      speed: baseSpeed + Math.random() * speedVariation, // Increased falling speed
+      opacity: 0.6 + Math.random() * 0.4,
+      zIndex: Math.floor(Math.random() * 10),
+      scale,
       imageIndex: Math.floor(Math.random() * petalImages.length),
     }
-  }
+  }, [dimensions, petalImages])
 
-  const animatePetals = () => {
+  // Animate the petals with improved performance
+  const animatePetals = useCallback(() => {
     setPetals((currentPetals) => {
       return currentPetals
         .map((petal) => {
           // Enhanced floating motion with more pronounced swaying
-          const x = petal.x + Math.sin(petal.y / 60) * 2.2
+          // Faster horizontal movement for more dynamic animation
+          const x = petal.x + Math.sin(petal.y / 50) * 2.8
           const y = petal.y + petal.speed
-          // Faster rotation for more visible spinning
           const rotation = petal.rotation + petal.rotationSpeed
 
           // Remove petals that have fallen below the screen
-          if (y > window.innerHeight + 50) {
+          if (y > dimensions.height + 50) {
             return null
           }
 
@@ -103,15 +100,75 @@ export default function SakuraAnimation() {
         .filter((petal): petal is Petal => petal !== null)
     })
 
-    requestAnimationFrame(animatePetals)
-  }
+    animationRef.current = requestAnimationFrame(animatePetals)
+  }, [dimensions.height])
+
+  // Handle window resize for responsiveness
+  useEffect(() => {
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+
+    // Set initial dimensions
+    if (typeof window !== 'undefined') {
+      handleResize()
+      window.addEventListener('resize', handleResize)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleResize)
+      }
+    }
+  }, [])
+
+  // Initialize and manage the animation
+  useEffect(() => {
+    const { initial, max } = getOptimalPetalCount()
+    
+    // Create initial petals with responsive count
+    const initialPetals: Petal[] = []
+    for (let i = 0; i < initial; i++) {
+      initialPetals.push(createPetal())
+    }
+    setPetals(initialPetals)
+
+    // Start animation loop
+    animationRef.current = requestAnimationFrame(animatePetals)
+
+    // Periodically add new petals - faster generation for smoother appearance
+    const interval = setInterval(() => {
+      setPetals((currentPetals) => {
+        // Add new petals at a time
+        const newPetals = []
+        const count = Math.floor(Math.random() * 3) + 1
+        for (let i = 0; i < count; i++) {
+          newPetals.push(createPetal())
+        }
+        
+        // Limit total flowers to prevent performance issues
+        // Use responsive max count
+        return [...currentPetals, ...newPetals].slice(-max)
+      })
+    }, 800) // Faster generation for more continuous flow
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+      clearInterval(interval)
+    }
+  }, [animatePetals, createPetal, getOptimalPetalCount])
 
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       {petals.map((petal) => (
         <div
           key={petal.id}
-          className="absolute"
+          className="absolute will-change-transform"
           style={{
             left: `${petal.x}px`,
             top: `${petal.y}px`,
@@ -119,7 +176,7 @@ export default function SakuraAnimation() {
             height: `${petal.size}px`,
             opacity: petal.opacity,
             transform: `rotate(${petal.rotation}deg) scale(${petal.scale})`,
-            transition: "transform 0.1s linear, opacity 0.5s ease",
+            transition: "transform 0.05s linear, opacity 0.3s ease", // Faster transitions for smoother animation
             filter: `drop-shadow(0 0 2px rgba(255, 255, 255, 0.3)) blur(${(1 - petal.scale) * 0.5}px)`,
             zIndex: petal.zIndex,
           }}
@@ -131,7 +188,8 @@ export default function SakuraAnimation() {
             style={{
               transform: `perspective(800px) rotateX(${Math.sin(petal.rotation * 0.01) * 15}deg) rotateY(${Math.cos(petal.rotation * 0.01) * 15}deg) rotateZ(${petal.rotation * 0.5}deg)`,
               filter: `drop-shadow(0 0 4px rgba(255, 192, 203, 0.4))`,
-              transition: "transform 0.05s linear", // Smoother spinning animation
+              transition: "transform 0.03s linear", // Even smoother spinning animation
+              willChange: "transform", // Performance optimization hint
             }}
           />
         </div>
