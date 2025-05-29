@@ -8,14 +8,32 @@ export default function HeroSection() {
   const [displayText, setDisplayText] = useState("Blackberry")
 
   useEffect(() => {
+    // Set visible immediately to work with our animation system
     setIsVisible(true)
 
     // Text animation interval
     const interval = setInterval(() => {
       setDisplayText((current) => (current === "Blackberry" ? "dsmita.pro" : "Blackberry"))
     }, 5000)
+    
+    // Add animation classes to hero section elements
+    const animateElements = () => {
+      const elements = document.querySelectorAll('[data-animate]')
+      elements.forEach((element) => {
+        // Force immediate animation for hero section
+        if (element.closest('#home')) {
+          element.classList.add('has-animated')
+        }
+      })
+    }
+    
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(animateElements, 100)
 
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      clearTimeout(timer)
+    }
   }, [])
 
   return (
@@ -38,22 +56,36 @@ export default function HeroSection() {
       </div>
 
       <div className="container mx-auto px-4 z-10 text-center max-w-3xl">
-        <div
-          className={`transition-all duration-700 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
-        >
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-3 md:mb-4 text-white neon-text leading-tight">
+        <div className="space-y-4 md:space-y-6">
+          <h1 
+            className="text-4xl sm:text-5xl md:text-7xl font-bold mb-3 md:mb-4 text-white neon-text leading-tight"
+            data-animate
+            data-animate-direction="down"
+          >
             Debasmita Behera
           </h1>
-          <h2 className="text-xl sm:text-2xl md:text-3xl text-purple-300 mb-4 md:mb-6 animated-text">
+          <h2 
+            className="text-xl sm:text-2xl md:text-3xl text-purple-300 mb-4 md:mb-6 animated-text"
+            data-animate
+            data-animate-delay="100"
+          >
             {displayText}
           </h2>
-          <p className="text-gray-300 text-base md:text-lg mb-6 md:mb-8 mx-auto max-w-md md:max-w-2xl">
+          <p 
+            className="text-gray-300 text-base md:text-lg mb-6 md:mb-8 mx-auto max-w-md md:max-w-2xl"
+            data-animate
+            data-animate-delay="200"
+          >
             Passionate about SEO, SMO, and digital marketing strategies that drive results. Turning data into actionable
             insights and brands into digital success stories.
           </p>
           
           {/* Mobile-optimized buttons with better touch targets */}
-          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 justify-center items-center">
+          <div 
+            className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 justify-center items-center"
+            data-animate
+            data-animate-delay="300"
+          >
             <a
               href="#projects"
               className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-pink-500 to-purple-600 

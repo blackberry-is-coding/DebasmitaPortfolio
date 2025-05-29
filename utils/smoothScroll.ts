@@ -11,6 +11,12 @@ let scrollSpeed = 0
 // Track if we're in a programmatic scroll
 let isProgrammaticScroll = false
 
+// Track the last user scroll position to prevent unwanted jumps
+let lastUserScrollPosition = 0
+let userScrollTimestamp = 0
+let isUserScrolling = false
+let userScrollTimeout: NodeJS.Timeout | null = null
+
 /**
  * Optimized smooth scroll with adaptive performance
  */
@@ -93,15 +99,17 @@ const simpleSmoothScrollMobile = (
   // Mark that we're doing a programmatic scroll
   isProgrammaticScroll = true
   
+  // Store the target position to prevent unwanted jumps
+  lastUserScrollPosition = targetPosition
+  
   // Add scrolling class to optimize animations during scroll
   document.documentElement.classList.add('is-scrolling')
-  document.body.style.pointerEvents = 'none' // Disable interactions during scroll
   
   // Calculate total distance
   const distance = targetPosition - startPosition
   
   // For very short distances, just jump there
-  if (Math.abs(distance) < 200) {
+  if (Math.abs(distance) < 150) {
     window.scrollTo(0, targetPosition)
     finishScroll(callback)
     return
@@ -109,23 +117,33 @@ const simpleSmoothScrollMobile = (
   
   // For mobile, use a stepped approach with fewer frames
   // This reduces the rendering load significantly
-  const steps = Math.min(Math.floor(duration / 50), 10) // Max 10 steps
+  const steps = Math.min(Math.floor(duration / 40), 8) // Max 8 steps for smoother feel
   const timePerStep = duration / steps
   let currentStep = 0
+  let isScrolling = true
+  
+  // Create a more natural easing function
+  const easeOutQuint = (x: number): number => {
+    return 1 - Math.pow(1 - x, 3)
+  }
   
   const doStep = () => {
+    // Check if the scroll has been interrupted by user
+    if (!isProgrammaticScroll || !isScrolling) {
+      finishScroll(callback)
+      return
+    }
+    
     currentStep++
     
     // Calculate progress (0 to 1)
     const progress = currentStep / steps
     
-    // Simple ease-in-out
-    const easedProgress = progress < 0.5 
-      ? 2 * progress * progress 
-      : -1 + (4 - 2 * progress) * progress
+    // Use a smoother easing function
+    const easedProgress = easeOutQuint(progress)
     
     // Calculate new position
-    const newPosition = startPosition + distance * easedProgress
+    const newPosition = Math.round(startPosition + distance * easedProgress)
     
     // Scroll to new position
     window.scrollTo(0, newPosition)
@@ -140,20 +158,52 @@ const simpleSmoothScrollMobile = (
     }
   }
   
+  // Allow user to interrupt the scroll
+  const interruptScroll = () => {
+    if (isProgrammaticScroll) {
+      isScrolling = false
+    }
+  }
+  
+  // Listen for user scroll events that might interrupt our animation
+  window.addEventListener('wheel', interruptScroll, { passive: true, once: true })
+  window.addEventListener('touchmove', interruptScroll, { passive: true, once: true })
+  
   // Start the stepped animation
-  setTimeout(doStep, timePerStep)
+  setTimeout(doStep, 10) // Start almost immediately for better responsiveness
 }
 
 /**
  * Clean up after scrolling finishes
  */
 const finishScroll = (callback?: () => void): void => {
+  // Update the last user scroll position to the current position
+  // This prevents unwanted jumps after programmatic scrolling
+  lastUserScrollPosition = window.scrollY
+  userScrollTimestamp = performance.now()
+  
   // Small delay before removing scrolling class
   setTimeout(() => {
     document.documentElement.classList.remove('is-scrolling')
+    document.documentElement.classList.remove('is-fast-scrolling')
     document.body.style.pointerEvents = '' // Re-enable interactions
     isProgrammaticScroll = false
+    scrollSpeed = 0
+    
     if (callback) callback()
+    
+    // Add a small delay to allow the browser to settle
+    setTimeout(() => {
+      // Check if the scroll position has unexpectedly changed
+      const currentPosition = window.scrollY
+      if (Math.abs(currentPosition - lastUserScrollPosition) > 50) {
+        // Restore to the expected position
+        window.scrollTo({
+          top: lastUserScrollPosition,
+          behavior: 'auto'
+        })
+      }
+    }, 50)
   }, 100)
 }
 
@@ -202,10 +252,34 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
     }
   })
   
-  // Track scroll speed for performance optimizations
+  // Track scroll speed and prevent unwanted scroll jumps
   window.addEventListener('scroll', () => {
-    // Skip if this is a programmatic scroll
-    if (isProgrammaticScroll) return
+    const now = performance.now()
+    const currentScrollY = window.scrollY
+    
+    // If this is a programmatic scroll, just update tracking variables
+    if (isProgrammaticScroll) {
+      lastScrollY = currentScrollY
+      lastScrollTime = now
+      return
+    }
+    
+    // This is a user-initiated scroll
+    isUserScrolling = true
+    
+    // Update the last user scroll position
+    lastUserScrollPosition = currentScrollY
+    userScrollTimestamp = now
+    
+    // Clear any existing timeout
+    if (userScrollTimeout) {
+      clearTimeout(userScrollTimeout)
+    }
+    
+    // Set a timeout to mark the end of user scrolling
+    userScrollTimeout = setTimeout(() => {
+      isUserScrolling = false
+    }, 200)
     
     // Add scrolling class
     if (!document.documentElement.classList.contains('is-scrolling')) {
@@ -213,9 +287,6 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
     }
     
     // Calculate scroll speed
-    const now = performance.now()
-    const currentScrollY = window.scrollY
-    
     if (lastScrollTime > 0) {
       const deltaTime = now - lastScrollTime
       if (deltaTime > 0) {
@@ -240,10 +311,34 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
   const cleanupScroll = () => {
     clearTimeout(scrollTimeout)
     scrollTimeout = setTimeout(() => {
-      document.documentElement.classList.remove('is-scrolling')
-      document.documentElement.classList.remove('is-fast-scrolling')
-      scrollSpeed = 0
-    }, 100)
+      // Only remove classes if we're not in a programmatic scroll
+      if (!isProgrammaticScroll) {
+        document.documentElement.classList.remove('is-scrolling')
+        document.documentElement.classList.remove('is-fast-scrolling')
+        scrollSpeed = 0
+      }
+      
+      // Check if the page has unexpectedly jumped from the user's last position
+      // This prevents the mysterious scroll-back issue
+      if (!isUserScrolling && !isProgrammaticScroll) {
+        const currentPosition = window.scrollY
+        const timeSinceUserScroll = performance.now() - userScrollTimestamp
+        
+        // If it's been less than 1 second since the user scrolled and
+        // the position has changed significantly without user or programmatic action,
+        // restore the user's last position
+        if (
+          timeSinceUserScroll < 1000 && 
+          Math.abs(currentPosition - lastUserScrollPosition) > 100
+        ) {
+          // Restore the user's last scroll position
+          window.scrollTo({
+            top: lastUserScrollPosition,
+            behavior: 'auto'
+          })
+        }
+      }
+    }, 150)
   }
   
   window.addEventListener('scroll', cleanupScroll, { passive: true })

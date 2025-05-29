@@ -20,13 +20,24 @@ export default function Home() {
   const [isScrolling, setIsScrolling] = useState(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
-  // Initialize smooth scrolling and optimize scroll performance
+  // Initialize smooth scrolling and reveal animations
   useEffect(() => {
     // Only run on client
     if (typeof window === 'undefined') return
     
-    // Initialize smooth scrolling with header offset
-    initSmoothScrolling(60)
+    // Import the smooth reveal utility
+    import('@/utils/smoothReveal').then(({ initSmoothReveal }) => {
+      // Initialize smooth scrolling with header offset
+      initSmoothScrolling(60)
+      
+      // Initialize smooth reveal animations with a small delay to ensure DOM is ready
+      setTimeout(() => {
+        initSmoothReveal('[data-animate]', {
+          duration: window.innerWidth <= 768 ? 600 : 800,
+          distance: window.innerWidth <= 768 ? '20px' : '30px',
+        })
+      }, 100)
+    })
     
     const handleScroll = () => {
       // Update header appearance
