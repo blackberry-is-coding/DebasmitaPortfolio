@@ -36,10 +36,10 @@ export const smoothScrollTo = (
   // For mobile devices, use native scrolling only
   const isMobile = window.innerWidth <= 768
   if (isMobile) {
-    // On mobile, just use native scrolling - no animation
+    // On mobile, use smooth scrolling for better experience
     window.scrollTo({
       top: targetPosition,
-      behavior: 'auto'
+      behavior: 'smooth'
     })
     
     // Call the callback after a short delay
@@ -253,7 +253,7 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
   const isMobile = window.innerWidth <= 768
   
   // Use different duration based on device type
-  const scrollDuration = isMobile ? 0 : 600 // No duration for mobile (instant)
+  const scrollDuration = isMobile ? 400 : 600 // Shorter but still smooth duration for mobile
   
   // Handle all anchor links
   document.addEventListener('click', (e) => {
@@ -272,10 +272,10 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
             const elementPosition = element.getBoundingClientRect().top + window.scrollY
             const targetPosition = elementPosition - headerOffset
             
-            // Use native scrolling on mobile
+            // Use smooth scrolling on mobile
             window.scrollTo({
               top: targetPosition,
-              behavior: 'auto'
+              behavior: 'smooth'
             })
           }
         } else {

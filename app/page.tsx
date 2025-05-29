@@ -55,42 +55,24 @@ export default function Home() {
       // Update header appearance
       setScrolled(window.scrollY > 10)
       
-      // On mobile, use a simpler approach to scrolling
-      if (isMobile) {
-        // Only add the scrolling class briefly during scroll
-        if (!isScrolling) {
-          setIsScrolling(true)
-          document.documentElement.classList.add('is-scrolling')
-        }
-        
-        // Clear previous timeout
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current)
-        }
-        
-        // Set a short timeout to remove the scrolling class
-        scrollTimeoutRef.current = setTimeout(() => {
-          setIsScrolling(false)
-          document.documentElement.classList.remove('is-scrolling')
-        }, 100) // Use a shorter timeout on mobile
-      } else {
-        // Desktop behavior
-        if (!isScrolling) {
-          setIsScrolling(true)
-          document.documentElement.classList.add('is-scrolling')
-        }
-        
-        // Clear previous timeout
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current)
-        }
-        
-        // Set timeout to detect when scrolling stops
-        scrollTimeoutRef.current = setTimeout(() => {
-          setIsScrolling(false)
-          document.documentElement.classList.remove('is-scrolling')
-        }, 150)
+      // Use a more consistent approach to scrolling for both mobile and desktop
+      // Only add the scrolling class if not already scrolling
+      if (!isScrolling) {
+        setIsScrolling(true)
+        document.documentElement.classList.add('is-scrolling')
       }
+      
+      // Clear previous timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      
+      // Set a timeout to remove the scrolling class
+      // Use a longer timeout to prevent flickering during continuous scrolling
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false)
+        document.documentElement.classList.remove('is-scrolling')
+      }, isMobile ? 300 : 400) // Longer timeout for smoother transitions
     }
     
     window.addEventListener("scroll", handleScroll, { passive: true })
@@ -111,11 +93,24 @@ export default function Home() {
               const elementPosition = element.getBoundingClientRect().top + window.scrollY
               const targetPosition = elementPosition - 60 // Header offset
               
-              // Use native scrolling on mobile
+              // Use smooth scrolling with better performance
               window.scrollTo({
                 top: targetPosition,
-                behavior: 'auto'
+                behavior: 'smooth'
               })
+              
+              // Keep the scrolling state active during the scroll
+              setIsScrolling(true)
+              
+              // Clear any existing timeout
+              if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current)
+              }
+              
+              // Set a longer timeout to ensure animation completes
+              scrollTimeoutRef.current = setTimeout(() => {
+                setIsScrolling(false)
+              }, 1000) // 1 second to ensure scroll completes
             }
           }
         }
