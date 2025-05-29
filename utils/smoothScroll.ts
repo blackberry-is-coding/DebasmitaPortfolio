@@ -117,7 +117,7 @@ const simpleSmoothScrollMobile = (
   
   // For mobile, use a stepped approach with fewer frames
   // This reduces the rendering load significantly
-  const steps = Math.min(Math.floor(duration / 40), 8) // Max 8 steps for smoother feel
+  const steps = Math.min(Math.floor(duration / 40), 6) // Reduced to 6 steps for better performance
   const timePerStep = duration / steps
   let currentStep = 0
   let isScrolling = true
@@ -182,7 +182,10 @@ const finishScroll = (callback?: () => void): void => {
   lastUserScrollPosition = window.scrollY
   userScrollTimestamp = performance.now()
   
-  // Small delay before removing scrolling class
+  // Determine if we're on mobile
+  const isMobile = window.innerWidth <= 768
+  
+  // Use a longer delay on mobile before removing scrolling classes
   setTimeout(() => {
     document.documentElement.classList.remove('is-scrolling')
     document.documentElement.classList.remove('is-fast-scrolling')
@@ -203,8 +206,8 @@ const finishScroll = (callback?: () => void): void => {
           behavior: 'auto'
         })
       }
-    }, 50)
-  }, 100)
+    }, isMobile ? 100 : 50)
+  }, isMobile ? 200 : 100)
 }
 
 /**
@@ -294,7 +297,11 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
         scrollSpeed = (deltaY / deltaTime) * 100 // px per 100ms
         
         // Add fast-scrolling class if speed exceeds threshold
-        if (scrollSpeed > 30) {
+        // Use a higher threshold for mobile devices to prevent flickering
+        const isMobile = window.innerWidth <= 768
+        const speedThreshold = isMobile ? 50 : 30
+        
+        if (scrollSpeed > speedThreshold) {
           document.documentElement.classList.add('is-fast-scrolling')
         } else {
           document.documentElement.classList.remove('is-fast-scrolling')
@@ -309,6 +316,9 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
   // Clean up scroll classes after scrolling stops
   let scrollTimeout: NodeJS.Timeout
   const cleanupScroll = () => {
+    // Determine if we're on mobile
+    const isMobile = window.innerWidth <= 768
+    
     clearTimeout(scrollTimeout)
     scrollTimeout = setTimeout(() => {
       // Only remove classes if we're not in a programmatic scroll
@@ -338,7 +348,7 @@ export const initSmoothScrolling = (headerOffset: number = 0): void => {
           })
         }
       }
-    }, 150)
+    }, isMobile ? 300 : 150) // Use a longer delay on mobile to prevent flickering
   }
   
   window.addEventListener('scroll', cleanupScroll, { passive: true })

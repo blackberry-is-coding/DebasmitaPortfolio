@@ -47,9 +47,12 @@ export const initSmoothReveal = (
   // Create an observer
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
-      // Skip if we're scrolling fast (for performance)
+      // On mobile, completely skip animations during any scrolling for better performance
+      // On desktop, only skip during fast scrolling
+      const isScrolling = document.documentElement.classList.contains('is-scrolling')
       const isScrollingFast = document.documentElement.classList.contains('is-fast-scrolling')
-      if (isScrollingFast && isMobile) return
+      
+      if ((isScrolling && isMobile) || isScrollingFast) return
 
       if (entry.isIntersecting) {
         const element = entry.target as HTMLElement

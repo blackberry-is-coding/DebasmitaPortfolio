@@ -180,12 +180,20 @@ body {
   }
 }
 
-/* Optimize scrolling performance on mobile */
+/* Apply smooth scrolling only on desktop */
+.scroll-smooth-desktop {
+  scroll-behavior: smooth;
+}
+
+/* Disable CSS smooth scrolling on mobile devices */
 @media (max-width: 768px) {
-  html {
+  .scroll-smooth-desktop {
     scroll-behavior: auto !important; /* Use JS for smooth scrolling instead of CSS */
   }
-  
+}
+
+/* Optimize scrolling performance on mobile */
+@media (max-width: 768px) {
   /* Reduce animation complexity during scroll */
   html.is-scrolling .animate-float,
   html.is-scrolling .animate-float-delay,
